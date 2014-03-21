@@ -83,11 +83,92 @@ void InitializeAnalysis() {
 	gAnalysisLoaded = FALSE;
 }
 
+int NumberOfWins(POSITION position) {
+	int wincount = 0;
+	POSITION child;
+	MOVELIST *ptr, *head;
+	MOVE move;
+	VALUE value, childvalue;
+
+	value = GetValueOfPosition(position);
+
+	if (Primitive(position) && value == win) {
+		return 1;
+	}
+
+	head = ptr = GenerateMoves(position);
+
+	while(ptr != NULL) {
+		move = ptr->move;
+		child = DoMove(position, move);
+		if ((childvalue = GetValueOfPosition(child)) != undecided) {
+			wincount += NumberOfWins(child);
+		}
+		ptr = ptr->next;
+	}
+	FreeMoveList(head);
+	return wincount;
+}
+
+int NumberOfLoses(POSITION position) {
+	int losecount = 0;
+	POSITION child;
+	MOVELIST *ptr, *head;
+	MOVE move;
+	VALUE value, childvalue;
+
+	value = GetValueOfPosition(position);
+
+	if (Primitive(position) && value == lose) {
+		return 1;
+	}
+
+	head = ptr = GenerateMoves(position);
+
+	while(ptr != NULL) {
+		move = ptr->move;
+		child = DoMove(position, move);
+		if ((childvalue = GetValueOfPosition(child)) != undecided) {
+			losecount += NumberOfLoses(child);
+		}
+		ptr = ptr->next;
+	}
+	FreeMoveList(head);
+	return losecount;
+}
+
+int NumberOfTies(POSITION position) {
+	int tiecount = 0;
+	POSITION child;
+	MOVELIST *ptr, *head;
+	MOVE move;
+	VALUE value, childvalue;
+
+	value = GetValueOfPosition(position);
+
+	if (Primitive(position) && value == tie) {
+		return 1;
+	}
+
+	head = ptr = GenerateMoves(position);
+
+	while(ptr != NULL) {
+		move = ptr->move;
+		child = DoMove(position, move);
+		if ((childvalue = GetValueOfPosition(child)) != undecided) {
+			tiecount += NumberOfTies(child);
+		}
+		ptr = ptr->next;
+	}
+	FreeMoveList(head);
+	return tiecount;
+}
+
 void PrintRawGameValues(BOOLEAN toFile)
 {
 	FILE *fp;
 	char filename[80];
-	POSITION i;
+	POSITION i, canonical;
 	VALUE value;
 
 	if(toFile) {
@@ -105,18 +186,42 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 	if (!toFile) printf("\n");
 	fprintf(fp,"%s\n", kGameName);
-	fprintf(fp,"Position,Value,Remoteness%s\n",
+	fprintf(fp,"Position,Value,Remoteness,# of Wins,# of Loses,# of Ties%s\n",
 			(!kPartizan && !gTwoBits) ? ",MexValue" : "");
 
-	for(i=0; i<gNumberOfPositions; i++)
-		if((value = GetValueOfPosition((POSITION)i)) != undecided) {
-			fprintf(fp,POSITION_FORMAT ",%c,%d", i,
-			gValueLetter[value], Remoteness((POSITION)i));
+	for(i=0; i<gNumberOfPositions; i++) {
+
+		//if (gSymmetries) {
+			canonical = gCanonicalPosition(i);
+			printf(POSITION_FORMAT " ", i);
+			printf(POSITION_FORMAT "\n", canonical);
+			if (canonical != i) {
+				value = undecided;
+			} else {
+				value = GetValueOfPosition(canonical);
+			}
+			
+		//} else {
+		//	printf("No!\n");
+		//	value = GetValueOfPosition(i);
+		//}
+
+		if(value != undecided) {
+			fprintf(fp,POSITION_FORMAT ",%c,%d,%d,%d,%d",
+				i,
+				gValueLetter[value],
+				Remoteness((POSITION)i),
+				NumberOfWins((POSITION)i),
+				NumberOfLoses((POSITION)i),
+				NumberOfTies((POSITION)i)
+			);
 			if(!kPartizan && !gTwoBits)
 				fprintf(fp,",%d\n",MexLoad((POSITION)i));
 			else
 				fprintf(fp,"\n");
 		}
+
+	}
 
 	if(toFile) {
 		fclose(fp);
@@ -774,7 +879,10 @@ VALUE AnalyzePosition(POSITION thePosition, VALUE theValue)
 		if(theValue == win)  {
 			winCount++;
 			reachablePositions++;
-			if ((theRemoteness = Remoteness(thePosition)) == 0) primitiveWins++;    // Stores remoteness on each call, saves data to array
+			if ((theRemoteness = Remoteness(thePosition)) == 0) {
+				primitiveWins++;    // Stores remoteness on each call, saves data to array
+				//PrintPosition(thePosition, "Nobody", TRUE);
+			} 
 			gAnalysis.DetailedPositionSummary[theRemoteness][0] += 1;
 			if (theRemoteness > theLargestRemoteness) theLargestRemoteness = theRemoteness; // Keeps track of the largest seen remoteness
 		} else if(theValue == lose) {
