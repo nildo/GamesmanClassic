@@ -123,7 +123,7 @@ char numberToChar(int n) {
 	return ' ';
 }
 
-void PrintBoard2(POSITION thePos, FILE * fp) {
+void PrintBoardString(POSITION thePos, FILE * fp) {
 	int g3Array[] = { 1, 3, 9, 27, 81, 243, 729, 2187, 6561 };
 	int i;
 	int theBlankOX[9];
@@ -182,20 +182,12 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 	for(i=0; i<gNumberOfPositions; i++) {
 
-		//if (gSymmetries) {
-			canonical = gCanonicalPosition(i);
-			//printf(POSITION_FORMAT " ", i);
-			//printf(POSITION_FORMAT "\n", canonical);
-			value = GetValueOfPosition(canonical);
-			
-		//} else {
-		//	printf("No!\n");
-		//	value = GetValueOfPosition(i);
-		//}
+		canonical = gCanonicalPosition(i);
+		value = GetValueOfPosition(canonical);
 
 		if(value != undecided) {
 			fprintf(fp,POSITION_FORMAT ",",i);
-			PrintBoard2(i, fp);
+			PrintBoardString(i, fp);
 			fprintf(fp,",%c,%d,%d,%d,%d,%d",
 				gValueLetter[value],
 				Remoteness((POSITION)i),
