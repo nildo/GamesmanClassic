@@ -83,8 +83,8 @@ void InitializeAnalysis() {
 	gAnalysisLoaded = FALSE;
 }
 
-int NumberOfWins(POSITION position) {
-	int wincount = 0;
+int Count(POSITION position, VALUE theValue) {
+	int count = 0;
 	POSITION child;
 	MOVELIST *ptr, *head;
 	MOVE move;
@@ -92,76 +92,67 @@ int NumberOfWins(POSITION position) {
 
 	value = GetValueOfPosition(position);
 
-	if (Primitive(position) && value == win) {
-		return 1;
-	}
-
 	head = ptr = GenerateMoves(position);
 
 	while(ptr != NULL) {
 		move = ptr->move;
 		child = DoMove(position, move);
 		if ((childvalue = GetValueOfPosition(child)) != undecided) {
-			wincount += NumberOfWins(child);
+			if (childvalue == theValue) {
+				count++;
+			}
 		}
 		ptr = ptr->next;
 	}
 	FreeMoveList(head);
-	return wincount;
+	return count;
 }
 
-int NumberOfLoses(POSITION position) {
-	int losecount = 0;
-	POSITION child;
-	MOVELIST *ptr, *head;
-	MOVE move;
-	VALUE value, childvalue;
-
-	value = GetValueOfPosition(position);
-
-	if (Primitive(position) && value == lose) {
-		return 1;
+char numberToChar(int n) {
+	switch (n) {
+		case 0:
+			return '-';
+		break;
+		case 1:
+			return 'o';
+		break;
+		case 2:
+			return 'x';
+		break;
 	}
-
-	head = ptr = GenerateMoves(position);
-
-	while(ptr != NULL) {
-		move = ptr->move;
-		child = DoMove(position, move);
-		if ((childvalue = GetValueOfPosition(child)) != undecided) {
-			losecount += NumberOfLoses(child);
-		}
-		ptr = ptr->next;
-	}
-	FreeMoveList(head);
-	return losecount;
+	return ' ';
 }
 
-int NumberOfTies(POSITION position) {
-	int tiecount = 0;
-	POSITION child;
-	MOVELIST *ptr, *head;
-	MOVE move;
-	VALUE value, childvalue;
-
-	value = GetValueOfPosition(position);
-
-	if (Primitive(position) && value == tie) {
-		return 1;
-	}
-
-	head = ptr = GenerateMoves(position);
-
-	while(ptr != NULL) {
-		move = ptr->move;
-		child = DoMove(position, move);
-		if ((childvalue = GetValueOfPosition(child)) != undecided) {
-			tiecount += NumberOfTies(child);
+void PrintBoard2(POSITION thePos, FILE * fp) {
+	int g3Array[] = { 1, 3, 9, 27, 81, 243, 729, 2187, 6561 };
+	int i;
+	int theBlankOX[9];
+	for(i = 8; i >= 0; i--) {
+		if(thePos >= ((int)2 * g3Array[i])) {
+			theBlankOX[i] = 2;
+			thePos -= (int)2 * g3Array[i];
 		}
-		ptr = ptr->next;
+		else if(thePos >= ((int)1 * g3Array[i])) {
+			theBlankOX[i] = 1;
+			thePos -= (int)1 * g3Array[i];
+		}
+		else if(thePos >= ((int)0 * g3Array[i])) {
+			theBlankOX[i] = 0;
+			thePos -= (int)0 * g3Array[i];
+		}
 	}
-	FreeMoveList(head);
-	return tiecount;
+	fprintf(fp, "\"%c %c %c\n%c %c %c\n%c %c %c\"",
+		numberToChar(theBlankOX[0]),
+		numberToChar(theBlankOX[1]),
+		numberToChar(theBlankOX[2]),
+		numberToChar(theBlankOX[3]),
+		numberToChar(theBlankOX[4]),
+		numberToChar(theBlankOX[5]),
+		numberToChar(theBlankOX[6]),
+		numberToChar(theBlankOX[7]),
+		numberToChar(theBlankOX[8])
+	);
+
 }
 
 void PrintRawGameValues(BOOLEAN toFile)
@@ -186,20 +177,16 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 	if (!toFile) printf("\n");
 	fprintf(fp,"%s\n", kGameName);
-	fprintf(fp,"Position,Value,Remoteness,# of Wins,# of Loses,# of Ties%s\n",
+	fprintf(fp,"Position,Board,Value,Remoteness,# of Wins,# of Loses,# of Ties, Canonical%s\n",
 			(!kPartizan && !gTwoBits) ? ",MexValue" : "");
 
 	for(i=0; i<gNumberOfPositions; i++) {
 
 		//if (gSymmetries) {
 			canonical = gCanonicalPosition(i);
-			printf(POSITION_FORMAT " ", i);
-			printf(POSITION_FORMAT "\n", canonical);
-			if (canonical != i) {
-				value = undecided;
-			} else {
-				value = GetValueOfPosition(canonical);
-			}
+			//printf(POSITION_FORMAT " ", i);
+			//printf(POSITION_FORMAT "\n", canonical);
+			value = GetValueOfPosition(canonical);
 			
 		//} else {
 		//	printf("No!\n");
@@ -207,14 +194,17 @@ void PrintRawGameValues(BOOLEAN toFile)
 		//}
 
 		if(value != undecided) {
-			fprintf(fp,POSITION_FORMAT ",%c,%d,%d,%d,%d",
-				i,
+			fprintf(fp,POSITION_FORMAT ",",i);
+			PrintBoard2(i, fp);
+			fprintf(fp,",%c,%d,%d,%d,%d,%d",
 				gValueLetter[value],
 				Remoteness((POSITION)i),
-				NumberOfWins((POSITION)i),
-				NumberOfLoses((POSITION)i),
-				NumberOfTies((POSITION)i)
+				Count((POSITION)i, lose),
+				Count((POSITION)i, win),
+				Count((POSITION)i, tie),
+				i == canonical
 			);
+
 			if(!kPartizan && !gTwoBits)
 				fprintf(fp,",%d\n",MexLoad((POSITION)i));
 			else

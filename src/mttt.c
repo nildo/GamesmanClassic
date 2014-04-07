@@ -556,6 +556,7 @@ BOOLEAN usersTurn;
 	       gBlankOXString[(int)theBlankOx[7]],
 	       gBlankOXString[(int)theBlankOx[8]],
 	       GetPrediction(position,playerName,usersTurn));
+
 }
 
 /************************************************************************
