@@ -1928,7 +1928,28 @@ char* PositionToString(POSITION pos) {
 	int turn = generic_hash_turn(pos);
 	char * formatted = MakeBoardString(board, "turn", StrFromI(turn), "");
 	SafeFree(board);
-	return formatted;
+	char * new_formatted = SafeMalloc((OthCols * OthRows * 2) * sizeof(char));
+	int i = 0, j = 0;
+	for (i = 0; i < OthRows; i++) {
+		for (j = 0; j < OthCols; j++) {
+			char theChar = formatted[i*OthCols + j];
+			if (theChar == ' ') {
+				theChar = '-';
+			}
+			new_formatted[i * (2*OthCols) + j*2] = theChar;
+			if (j != OthCols-1) {
+				new_formatted[i * (2*OthCols) + j*2 + 1] = ' ';
+			} else {
+				if (i != OthRows-1) {
+					new_formatted[i * (2*OthCols) + j*2 + 1] = '\n';
+				} else {
+					new_formatted[i * (2*OthCols) + j*2 + 1] = '\0';
+				}
+			}
+		}
+	}
+	SafeFree(formatted);
+	return new_formatted;
 }
 
 char * PositionToEndData(POSITION pos) {

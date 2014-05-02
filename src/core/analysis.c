@@ -187,7 +187,9 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 		if(value != undecided) {
 			fprintf(fp,POSITION_FORMAT ",",i);
-			PrintBoardString(i, fp);
+			char * pos_str = PositionToString(i);
+			fprintf(fp, "\"%s\"" , pos_str);
+			//PrintBoardString(i, fp);
 			fprintf(fp,",%c,%d,%d,%d,%d,%d",
 				gValueLetter[value],
 				Remoteness((POSITION)i),

@@ -61,5 +61,6 @@ void                    setOption                       (int option);
 void SetTclCGameSpecificOptions      (int theOptions[]);
 void                    GameSpecificMenu                (void);
 void                    DebugMenu                       (void);
+char*					PositionToString				(POSITION pos);
 
 #endif /* GMCORE_GAMESMAN_H */
