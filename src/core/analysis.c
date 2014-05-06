@@ -88,9 +88,7 @@ int Count(POSITION position, VALUE theValue) {
 	POSITION child;
 	MOVELIST *ptr, *head;
 	MOVE move;
-	VALUE value, childvalue;
-
-	value = GetValueOfPosition(position);
+	VALUE childvalue;
 
 	head = ptr = GenerateMoves(position);
 
@@ -108,6 +106,9 @@ int Count(POSITION position, VALUE theValue) {
 	return count;
 }
 
+/*
+	Just convert a int into the character for the board.
+*/
 char numberToChar(int n) {
 	switch (n) {
 		case 0:
@@ -123,7 +124,11 @@ char numberToChar(int n) {
 	return ' ';
 }
 
-void PrintBoardString(POSITION thePos, FILE * fp) {
+/*
+	This function is just for Tic-Tac-Toe.
+	It prints the board pieces in a human readable form.
+*/
+void PrintBoardString(FILE * file, POSITION thePos) {
 	int g3Array[] = { 1, 3, 9, 27, 81, 243, 729, 2187, 6561 };
 	int i;
 	int theBlankOX[9];
@@ -141,7 +146,7 @@ void PrintBoardString(POSITION thePos, FILE * fp) {
 			thePos -= (int)0 * g3Array[i];
 		}
 	}
-	fprintf(fp, "\"%c %c %c\n%c %c %c\n%c %c %c\"",
+	fprintf(file, "\"%c %c %c\n%c %c %c\n%c %c %c\"",
 		numberToChar(theBlankOX[0]),
 		numberToChar(theBlankOX[1]),
 		numberToChar(theBlankOX[2]),
@@ -151,6 +156,67 @@ void PrintBoardString(POSITION thePos, FILE * fp) {
 		numberToChar(theBlankOX[6]),
 		numberToChar(theBlankOX[7]),
 		numberToChar(theBlankOX[8])
+	);
+
+}
+
+/*
+	Just convert a VALUE into a char. By default returns '?' but that should never happen.
+*/
+char valueToChar(VALUE value) {
+	switch (value) {
+		case undecided:
+			return '-';
+		break;
+		case win:
+			return 'W';
+		break;
+		case lose:
+			return 'L';
+		break;
+		case tie:
+			return 'T';
+		break;
+		default:
+			return '?';
+		break;
+	}
+}
+
+/*
+	This function is just for Tic-Tac-Toe.
+	It prints the values of the children for each move possible from the position.
+*/
+void PrintBoardMoveValues(FILE * file, POSITION position) {
+	POSITION child;
+	MOVELIST *ptr, *head;
+	MOVE move;
+	VALUE values[9] = {
+		undecided, undecided, undecided,
+		undecided, undecided, undecided,
+		undecided, undecided, undecided
+	};
+
+	head = ptr = GenerateMoves(position);
+
+	while(ptr != NULL) {
+		move = ptr->move;
+		child = DoMove(position, move);
+		values[move] = GetValueOfPosition(child);
+		ptr = ptr->next;
+	}
+	FreeMoveList(head);
+
+	fprintf(file, "\"%c %c %c\n%c %c %c\n%c %c %c\"",
+		valueToChar(values[0]),
+		valueToChar(values[1]),
+		valueToChar(values[2]),
+		valueToChar(values[3]),
+		valueToChar(values[4]),
+		valueToChar(values[5]),
+		valueToChar(values[6]),
+		valueToChar(values[7]),
+		valueToChar(values[8])
 	);
 
 }
@@ -177,7 +243,7 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 	if (!toFile) printf("\n");
 	fprintf(fp,"%s\n", kGameName);
-	fprintf(fp,"Position,Board,Value,Remoteness,# of Wins,# of Loses,# of Ties, Canonical%s\n",
+	fprintf(fp,"Position,Board,Moves,Value,Remoteness,# of Wins,# of Loses,# of Ties,Canonical%s\n",
 			(!kPartizan && !gTwoBits) ? ",MexValue" : "");
 
 	for(i=0; i<gNumberOfPositions; i++) {
@@ -187,9 +253,19 @@ void PrintRawGameValues(BOOLEAN toFile)
 
 		if(value != undecided) {
 			fprintf(fp,POSITION_FORMAT ",",i);
-			char * pos_str = PositionToString(i);
-			fprintf(fp, "\"%s\"" , pos_str);
-			//PrintBoardString(i, fp);
+
+			// The following two lines will print a "raw" board for any game.
+			//char * pos_str = PositionToString(i);
+			//fprintf(fp, "\"%s\"" , pos_str);
+
+			// The following line will print a board for only Tic-Tac-Toe.
+			PrintBoardString(fp, i);
+
+			fprintf(fp, ",");
+
+			// The following line will print the board move values for only Tic-Tac-Toe.
+			PrintBoardMoveValues(fp, i);
+
 			fprintf(fp,",%c,%d,%d,%d,%d,%d",
 				gValueLetter[value],
 				Remoteness((POSITION)i),
